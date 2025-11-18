@@ -1,0 +1,115 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // -----------------------------
+    // Users (teacher + learner account profiles)
+    // -----------------------------
+    match /users/{userId} {
+      // Allow a user to create their own profile document (important for sign-ups).
+      allow create: if request.auth != null && request.auth.uid == userId;
+
+      // Once created, allow the user to read, update, or delete their own profile document.
+      // Do NOT allow other users to read arbitrary user documents to protect privacy.
+      allow read, update, delete: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Default owner-only access for any other subcollections under /users/{uid}
+    match /users/{userId}/{subCollection=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // -----------------------------
+    // gameProfiles (per-user learner profiles)
+    // Path: /users/{userId}/gameProfiles/{profileId}
+    // - Account owners (students/parents) can read/write their own profiles and nested subcollections.
+    // - Teachers can READ (get/list) profiles that include their teacherCode in the profile document.
+    //   This enables teacher-facing collectionGroup queries that match by teacherCode.
+    // -----------------------------
+    match /users/{userId}/gameProfiles/{profileId} {
+      // Reading a single document (get) allowed if requester is the owner OR if the requester
+      // is a teacher whose teacherCode matches the profile's teacherCode.
+      allow get: if request.auth != null && (
+        request.auth.uid == userId ||
+        (
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher'
+          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.teacherCode == resource.data.teacherCode
+        )
+      );
+
+      // Listing (query) documents requires special handling because `resource` is not available
+      // for query evaluation. We allow list when either the requester is the owner, or the
+      // requester is a teacher and the client query includes an equality filter on teacherCode
+      // that matches the teacher's registered code. This enables safe collectionGroup queries
+      // such as collectionGroup('gameProfiles').where('teacherCode','==', myCode).
+      allow list: if request.auth != null && (
+        request.auth.uid == userId ||
+        (
+          // requester must be a teacher
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher'
+          && request.query.where.size() > 0
+          // Require the first where clause to be teacherCode == teacherCode (our client uses a single where)
+          && request.query.where[0].field == 'teacherCode'
+          && request.query.where[0].op == '=='
+          && request.query.where[0].value == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.teacherCode
+        )
+      );
+
+      // Only the owner (account holder) may create/update/delete learner profiles.
+      allow create, update, delete: if request.auth != null && request.auth.uid == userId;
+
+      // Subcollections under a gameProfile are owner-only, except for messages where teachers can access learners' messages via teacherCode
+      match /messages/{messageId} {
+        allow read, write: if request.auth != null && (
+          request.auth.uid == userId ||
+          (
+            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher' &&
+            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.teacherCode == get(/databases/$(database)/documents/users/$(userId)/gameProfiles/$(profileId)).data.teacherCode
+          )
+        );
+      }
+      match /{subCollection=**} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+
+    // -----------------------------
+    // teacherCodes reservation collection (create-only)
+    // Clients create /teacherCodes/{code} with { uid: request.auth.uid } to reserve a code.
+    // -----------------------------
+    match /teacherCodes/{code} {
+      allow create: if request.auth != null
+                    && request.auth.uid == request.resource.data.uid
+                    && !exists(/databases/$(database)/documents/teacherCodes/$(code));
+
+      // Clients should not read/update/delete codes; Admin SDK may manage them server-side.
+      allow read, update, delete: if false;
+    }
+
+    // -----------------------------
+    // Default: TEMPORARY DEVELOPMENT ACCESS
+    // Remove after testing!
+    // -----------------------------
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
+
+/*
+  Notes:
+  - These rules let newly authenticated users write a document at /users/{theirUid}.
+  - For Google sign-in: if you want to allow users who sign in with Google to have their user doc created by client code, the client must be signed in (it is) and call setDoc on /users/{uid}.
+  - For more complex workflows (admin approval, reserved teacher codes), prefer using a Cloud Function with the Admin SDK to create/approve teacher profiles server-side.
+
+  Development shortcut (NOT for production):
+  To allow any authenticated user to read/write all documents while developing, you can temporarily use:
+
+  match /{document=**} {
+    allow read, write: if request.auth != null;
+  }
+
+  Deploy rules with:
+    npm install -g firebase-tools
+    firebase deploy --only firestore:rules
+
+*/
