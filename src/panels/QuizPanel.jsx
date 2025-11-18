@@ -1,11 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { collection, addDoc, query, where, getDocs, doc, updateDoc } from "firebase/firestore";
 import { db, auth } from "../firebase";
-import { useNavigate } from "react-router-dom";
 import { collectionGroup } from "firebase/firestore";
 
 export default function QuizPanel({ teacherCode }) {
-  const navigate = useNavigate();
   const [learners, setLearners] = useState([]);
   const [selectedLearners, setSelectedLearners] = useState([]);
   const [quizTitle, setQuizTitle] = useState('');
@@ -115,7 +113,14 @@ export default function QuizPanel({ teacherCode }) {
       }
 
       alert('Quiz created and assigned successfully!');
-      navigate('/profile');
+      // Reset form
+      setQuizTitle('');
+      setQuizDescription('');
+      setQuestions([{ question: '', options: ['', '', '', ''], correctAnswer: 0 }]);
+      setIsActive(true);
+      setCurrentStep('create');
+      setSelectedLearners([]);
+      setLearners(learners.map(l => ({ ...l, selected: false })));
     } catch (err) {
       console.error('Error creating quiz:', err);
       alert('Failed to create quiz. Please try again.');
@@ -200,16 +205,7 @@ export default function QuizPanel({ teacherCode }) {
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold text-slate-900">Create New Quiz</h1>
-        <button
-          onClick={() => navigate('/profile')}
-          className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
-        >
-          Back to Dashboard
-        </button>
-      </div>
+    <div className="max-w-4xl mx-auto">
 
       <div className="space-y-6">
         {/* Quiz Basic Info */}

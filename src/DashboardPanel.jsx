@@ -10,11 +10,12 @@ import {
   setDoc,
 } from "firebase/firestore";
 import { signOut } from "firebase/auth";
-import { Users, TrendingUp, Award, Clock, Menu, X } from "lucide-react";
+import { Users, TrendingUp, Award, Clock, Menu, X, BookOpen } from "lucide-react";
 
 import LearnersPanel from "./panels/LearnersPanel.jsx";
 import StatisticsPanel from "./panels/StatisticsPanel.jsx";
 import AccountProfilePanel from "./panels/AccountProfilePanel.jsx";
+import QuizPanel from "./panels/QuizPanel.jsx";
 import StatCard from "./components/StatCard.jsx";
 import LearnerCard from "./components/LearnerCard.jsx";
 
@@ -230,6 +231,7 @@ export default function ProfileSelection() {
         <nav className="flex-1 p-4 space-y-2">
           {[
             { id: 'learners', label: 'Learners', icon: Users },
+            { id: 'quizzes', label: 'Quizzes', icon: BookOpen },
             { id: 'statistics', label: 'Statistics', icon: TrendingUp },
             { id: 'account', label: 'Account', icon: Award }
           ].map(({ id, label, icon: Icon }) => (
@@ -282,14 +284,7 @@ export default function ProfileSelection() {
                       <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-2">Dashboard</h1>
                       <p className="text-slate-600">Manage and track your learners' progress</p>
                     </div>
-                    <div className="flex gap-3 flex-wrap">
-                      <button
-                        onClick={() => navigate('/quiz/create')}
-                        className="px-4 py-2 bg-purple-600 border border-purple-700 text-white rounded-lg hover:bg-purple-700 font-medium transition duration-300 flex items-center gap-2"
-                      >
-                        📝 Create Quiz
-                      </button>
-                    </div>
+
                   </div>
 
                   {/* Stats Cards */}
@@ -348,6 +343,55 @@ export default function ProfileSelection() {
 
           {tab === 'statistics' && (
             <StatisticsPanel learnersCount={learnersCount} teacherDoc={teacherDoc} styles={styles} />
+          )}
+
+          {tab === 'quizzes' && (
+            <div>
+              {/* Header */}
+              <div className="mb-8">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                  <div>
+                    <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-2">Quiz Management</h1>
+                    <p className="text-slate-600">Create and manage quizzes for your students</p>
+                  </div>
+                </div>
+
+                {/* Stats Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <StatCard
+                    title="Active Quizzes"
+                    value="3"
+                    change="Visible to students"
+                    icon={BookOpen}
+                    color="from-purple-500 to-purple-600"
+                  />
+                  <StatCard
+                    title="Completed Today"
+                    value="8"
+                    change="+23% from yesterday"
+                    icon={Award}
+                    color="from-green-500 to-green-600"
+                  />
+                  <StatCard
+                    title="Avg. Score"
+                    value="85%"
+                    change="+5% from last week"
+                    icon={TrendingUp}
+                    color="from-blue-500 to-blue-600"
+                  />
+                  <StatCard
+                    title="Questions Created"
+                    value="47"
+                    change="Across all quizzes"
+                    icon={Clock}
+                    color="from-yellow-500 to-yellow-600"
+                  />
+                </div>
+              </div>
+
+              {/* Quiz Panel */}
+              <QuizPanel teacherCode={teacherDoc?.teacherCode} />
+            </div>
           )}
 
           {tab === 'account' && (

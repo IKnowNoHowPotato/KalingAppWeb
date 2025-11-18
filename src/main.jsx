@@ -5,7 +5,6 @@ import "./index.css";
 import Login from "./login.jsx";
 import DashboardPanel from "./DashboardPanel.jsx";
 import TeacherRegister from "./TeacherRegister.jsx";
-import QuizPanel from "./panels/QuizPanel.jsx";
 
 
 // ✅ Check if user is logged in (dummy)
@@ -32,14 +31,6 @@ ReactDOM.createRoot(document.getElementById("root")).render(
           element={
             <ProtectedRoute>
               <DashboardPanel />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/quiz/create"
-          element={
-            <ProtectedRoute>
-              <QuizPanel teacherCode={JSON.parse(localStorage.getItem("currentUser"))?.teacherCode} />
             </ProtectedRoute>
           }
         />
