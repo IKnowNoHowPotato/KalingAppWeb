@@ -16,8 +16,6 @@ import LearnersPanel from "./panels/LearnersPanel.jsx";
 import StatisticsPanel from "./panels/StatisticsPanel.jsx";
 import AccountProfilePanel from "./panels/AccountProfilePanel.jsx";
 import QuizPanel from "./panels/QuizPanel.jsx";
-import StatCard from "./components/StatCard.jsx";
-import LearnerCard from "./components/LearnerCard.jsx";
 
 
 export default function ProfileSelection() {
@@ -287,37 +285,7 @@ export default function ProfileSelection() {
 
                   </div>
 
-                  {/* Stats Cards */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <StatCard 
-                      title="Total Learners" 
-                      value="24" 
-                      change="+2 this week" 
-                      icon={Users}
-                      color="from-blue-500 to-blue-600"
-                    />
-                    <StatCard 
-                      title="Avg. Progress" 
-                      value="68%" 
-                      change="+5% from last week" 
-                      icon={TrendingUp}
-                      color="from-emerald-500 to-emerald-600"
-                    />
-                    <StatCard 
-                      title="Top Performers" 
-                      value="8" 
-                      change="Excellent progress" 
-                      icon={Award}
-                      color="from-amber-500 to-amber-600"
-                    />
-                    <StatCard 
-                      title="Active Today" 
-                      value="19" 
-                      change="79% engagement" 
-                      icon={Clock}
-                      color="from-purple-500 to-purple-600"
-                    />
-                  </div>
+
                 </div>
 
                 {/* Learners Section */}
@@ -356,37 +324,7 @@ export default function ProfileSelection() {
                   </div>
                 </div>
 
-                {/* Stats Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <StatCard
-                    title="Active Quizzes"
-                    value="3"
-                    change="Visible to students"
-                    icon={BookOpen}
-                    color="from-purple-500 to-purple-600"
-                  />
-                  <StatCard
-                    title="Completed Today"
-                    value="8"
-                    change="+23% from yesterday"
-                    icon={Award}
-                    color="from-green-500 to-green-600"
-                  />
-                  <StatCard
-                    title="Avg. Score"
-                    value="85%"
-                    change="+5% from last week"
-                    icon={TrendingUp}
-                    color="from-blue-500 to-blue-600"
-                  />
-                  <StatCard
-                    title="Questions Created"
-                    value="47"
-                    change="Across all quizzes"
-                    icon={Clock}
-                    color="from-yellow-500 to-yellow-600"
-                  />
-                </div>
+
               </div>
 
               {/* Quiz Panel */}
