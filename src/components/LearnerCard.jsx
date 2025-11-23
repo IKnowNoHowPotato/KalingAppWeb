@@ -1,6 +1,11 @@
-export default function LearnerCard({ profileName, email, chapter, onMessage, avatar }) {
+export default function LearnerCard({ profileName, email, chapter, onMessage, avatar, selectable = false, checked = false, onToggle }) {
   return (
-    <div className="bg-white rounded-lg border border-slate-200 p-5 transition-all duration-300 ease-out hover:shadow-lg hover:-translate-y-1">
+    <div className="relative bg-white rounded-lg border border-slate-200 p-4 md:p-5 transition-all duration-300 ease-out hover:shadow-lg hover:-translate-y-1">
+      {selectable && (
+        <label className="absolute top-3 left-3">
+          <input type="checkbox" checked={checked} onChange={onToggle} className="w-4 h-4 md:w-5 md:h-5" />
+        </label>
+      )}
       {/* Header with Avatar and Name */}
       <div className="flex items-start gap-4 mb-4">
         <img

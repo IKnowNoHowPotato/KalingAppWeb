@@ -27,6 +27,7 @@ export default function ProfileSelection() {
   const [teacherDoc, setTeacherDoc] = useState(null);
   const [showCode, setShowCode] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [bulkModeKey, setBulkModeKey] = useState(0);
   const [editState, setEditState] = useState({ name: "", subject: "", school: "" });
   const [saving, setSaving] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
@@ -301,7 +302,7 @@ export default function ProfileSelection() {
                       className="px-4 py-2 bg-white border border-slate-300 rounded-lg placeholder-slate-400 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300 hidden sm:block"
                     />
                   </div>
-                  <LearnersPanel teacherCode={teacherDoc?.teacherCode} onSelectLearner={goToDashboardWithLearner} onCountChange={setLearnersCount} styles={styles} reloadKey={reloadKey} />
+                  <LearnersPanel teacherCode={teacherDoc?.teacherCode} onSelectLearner={goToDashboardWithLearner} onCountChange={setLearnersCount} styles={styles} reloadKey={reloadKey} bulkModeKey={bulkModeKey} />
                 </div>
               </div>
             ) : (
