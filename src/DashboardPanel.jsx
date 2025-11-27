@@ -15,7 +15,7 @@ import { Users, TrendingUp, Award, Clock, Menu, X, BookOpen } from "lucide-react
 import LearnersPanel from "./panels/LearnersPanel.jsx";
 import StatisticsPanel from "./panels/StatisticsPanel.jsx";
 import AccountProfilePanel from "./panels/AccountProfilePanel.jsx";
-import QuizPanel from "./panels/QuizPanel.jsx";
+import AssessmentPanel from "./panels/AssessmentPanel.jsx";
 
 
 export default function ProfileSelection() {
@@ -230,7 +230,7 @@ export default function ProfileSelection() {
         <nav className="flex-1 p-4 space-y-2">
           {[
             { id: 'learners', label: 'Learners', icon: Users },
-            { id: 'quizzes', label: 'Quizzes', icon: BookOpen },
+            { id: 'assessments', label: 'Assessments', icon: BookOpen },
             { id: 'statistics', label: 'Statistics', icon: TrendingUp },
             { id: 'account', label: 'Account', icon: Award }
           ].map(({ id, label, icon: Icon }) => (
@@ -314,22 +314,22 @@ export default function ProfileSelection() {
             <StatisticsPanel learnersCount={learnersCount} teacherDoc={teacherDoc} styles={styles} />
           )}
 
-          {tab === 'quizzes' && (
+          {tab === 'assessments' && (
             <div>
               {/* Header */}
               <div className="mb-8">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                   <div>
-                    <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-2">Quiz Management</h1>
-                    <p className="text-slate-600">Create and manage quizzes for your students</p>
+                    <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-2">Assessment Management</h1>
+                    <p className="text-slate-600">Create and manage assessments for your students</p>
                   </div>
                 </div>
 
 
               </div>
 
-              {/* Quiz Panel */}
-              <QuizPanel teacherCode={teacherDoc?.teacherCode} />
+              {/* Assessment Panel */}
+              <AssessmentPanel teacherCode={teacherDoc?.teacherCode} />
             </div>
           )}
 
@@ -387,4 +387,4 @@ const studentStyles = {
   progressFill: { height: "12px", borderRadius: "8px", background: "#95d1c6" },
   historySection: { marginTop: "20px", background: "#ffffff", color: "#333", padding: "20px", borderRadius: "12px" },
   historyItem: { padding: "10px", borderLeft: "4px solid #4caf50", marginBottom: "10px", background: "#f9f9f9", borderRadius: "6px" }
-};
+ };
