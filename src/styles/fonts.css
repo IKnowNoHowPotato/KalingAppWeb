@@ -1,0 +1,10 @@
+/* fonts.css — include custom font-face declarations here if needed */
+/* Empty placeholder so imports resolve during dev */
+
+@font-face {
+  font-family: 'InterVarA';
+  src: local('Arial');
+  font-weight: 100 900;
+}
+
+body { font-family: InterVarA, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; }

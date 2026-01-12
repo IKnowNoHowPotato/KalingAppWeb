@@ -1,0 +1,4 @@
+/* Ensure imports come first for postcss-import */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
