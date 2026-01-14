@@ -69,12 +69,24 @@ export function StorySelection({
   const [recommendation, setRecommendation] =
     useState<'pre-reader' | 'early-reader' | null>(null);
 
+  // Helper: robustly find a user index in localStorage by id/localId
+  function findLocalUserIndex(users: any[], uid: string) {
+    const numeric = Number(uid);
+    return users.findIndex((u: any) =>
+      u.id === uid ||
+      u.id === numeric ||
+      u.localId === uid ||
+      u.localId === numeric
+    );
+  }
+
   /**
    * Load assessment from localStorage
    */
   useEffect(() => {
     const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const child = users.find((u: any) => u.id === userUid);
+    const idx = findLocalUserIndex(users, userUid);
+    const child = idx !== -1 ? users[idx] : null;
 
     if (child?.assessment) {
       setAssessmentData(child.assessment);
@@ -97,22 +109,34 @@ export function StorySelection({
 
     // 1️⃣ Save locally
     const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const index = users.findIndex((u: any) => u.id === userUid);
+    const index = findLocalUserIndex(users, userUid);
 
     if (index !== -1) {
       users[index].storySelection = storyId;
       users[index].storyRecommended = recommendation;
       users[index].storySelectedAt = timestamp;
-      localStorage.setItem('users', JSON.stringify(users));
+      try {
+        localStorage.setItem('users', JSON.stringify(users));
+      } catch (err) {
+        console.warn('Failed to save story selection locally', err);
+      }
     }
 
-    // 2️⃣ Save to Firebase
+    // 2️⃣ Save to Firebase using a numeric id if available (from local entry)
     try {
-      await updateUserByNumericId(Number(userUid), {
-        storySelection: storyId,
-        storyRecommended: recommendation,
-        storySelectedAt: timestamp,
-      });
+      const localEntry = index !== -1 ? users[index] : null;
+      const numericId = localEntry?.id ?? localEntry?.localId ?? null;
+      const cloudId = Number(numericId ?? userUid);
+
+      if (!Number.isNaN(cloudId)) {
+        await updateUserByNumericId(cloudId, {
+          storySelection: storyId,
+          storyRecommended: recommendation,
+          storySelectedAt: timestamp,
+        });
+      } else {
+        console.warn('No numeric id available to save story selection to cloud; skipping cloud update.');
+      }
     } catch (err) {
       console.warn(
         'Failed to save story selection to Firebase (offline mode)',
@@ -204,11 +228,24 @@ export function StorySelection({
           {stories.map((story) => (
             <Card
               key={story.id}
+              role="button"
+              tabIndex={assessmentData ? 0 : -1}
+              onClick={() =>
+                assessmentData &&
+                handleStartStory(story.id as 'pre-reader' | 'early-reader')
+              }
+              onKeyDown={(e) => {
+                if (!assessmentData) return;
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleStartStory(story.id as 'pre-reader' | 'early-reader');
+                }
+              }}
               className={`relative overflow-hidden border-4 transition-all hover:scale-105 ${
                 story.id === recommendation
                   ? 'border-yellow-400 shadow-2xl'
                   : 'border-purple-200 shadow-lg'
-              }`}
+              } ${assessmentData ? 'cursor-pointer' : 'opacity-60 cursor-not-allowed'}`}
             >
               {/* ⭐ Recommended Tag */}
               {story.id === recommendation && (
@@ -253,11 +290,12 @@ export function StorySelection({
 
                 <Button
                   disabled={!assessmentData}
-                  onClick={() =>
+                  onClick={(e) => {
+                    e.stopPropagation();
                     handleStartStory(
                       story.id as 'pre-reader' | 'early-reader'
-                    )
-                  }
+                    );
+                  }}
                   className={`w-full bg-gradient-to-r ${story.gradient} text-white py-6 text-lg`}
                 >
                   Start This Story

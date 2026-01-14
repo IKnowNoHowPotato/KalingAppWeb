@@ -94,29 +94,68 @@ export function AssessmentForm({ childName, registrationId, onComplete }: Assess
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
+    console.groupCollapsed(`AssessmentForm.handleSubmit — registrationId=${registrationId} child="${childName}"`);
+    console.debug('Start submit', { registrationId, childName, formDataSnapshot: formData });
+    const startTs = Date.now();
+
     // Basic validation
     if (!formData.gradeLevel || !formData.readingAbility) {
+      console.warn('Validation failed - missing required fields', {
+        gradeLevel: formData.gradeLevel,
+        readingAbility: formData.readingAbility,
+      });
       toast.error('Please complete all required sections!');
+      console.groupEnd();
       return;
     }
 
     // Save assessment data locally under `users` and attempt cloud update
-    const registrations = JSON.parse(localStorage.getItem('users') || '[]');
-    const index = registrations.findIndex((r: any) => r.id === registrationId);
+    let registrations: any[] = [];
+    try {
+      registrations = JSON.parse(localStorage.getItem('users') || '[]');
+      console.debug('Loaded registrations from localStorage', { count: registrations.length });
+    } catch (parseErr) {
+      console.error('Failed to parse users from localStorage', parseErr);
+      registrations = [];
+    }
+
+    // registrations created in RegistrationForm use `localId` (not `id`).
+    const index = registrations.findIndex(
+      (r: any) => r.localId === registrationId || r.id === registrationId
+    );
     if (index !== -1) {
+      console.debug('Found registration entry locally at index', index, 'entry:', registrations[index]);
       registrations[index].assessment = formData;
       registrations[index].assessmentCompletedAt = new Date().toISOString();
-      localStorage.setItem('users', JSON.stringify(registrations));
+      try {
+        localStorage.setItem('users', JSON.stringify(registrations));
+        console.info('Saved assessment to localStorage for registration', {
+          index,
+          localId: registrations[index].localId,
+          id: registrations[index].id,
+        });
+      } catch (saveErr) {
+        console.error('Failed to save updated registrations to localStorage', saveErr);
+      }
+    } else {
+      console.warn('No local registration found for provided registrationId', registrationId);
     }
 
     try {
-      await updateUserByNumericId(registrationId, { assessment: formData, assessmentCompletedAt: new Date().toISOString() })
+      console.debug('Attempting cloud update via updateUserByNumericId', { registrationId });
+      const res = await updateUserByNumericId(registrationId, {
+        assessment: formData,
+        assessmentCompletedAt: new Date().toISOString(),
+      });
+      console.info('Cloud update completed', { registrationId, result: res });
     } catch (err) {
-      console.warn('Failed to update assessment in cloud', err)
+      console.error('Failed to update assessment in cloud', err);
     }
 
     toast.success(`Assessment completed for ${childName}! 🎯`);
+    console.debug('handleSubmit completed in', Date.now() - startTs, 'ms');
+    console.groupEnd();
     onComplete();
   };
 

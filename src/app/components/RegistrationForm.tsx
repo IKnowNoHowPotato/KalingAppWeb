@@ -5,7 +5,7 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Card } from './ui/card';
 import { toast } from 'sonner';
-import { createRegistration, createUserDocWithUid } from '../services/firestoreService';
+import { createRegistration } from '../services/firestoreService';
 import { registerWithEmail } from '../../firebase';
 
 interface RegistrationFormProps {
@@ -99,7 +99,7 @@ export function RegistrationForm({
         provider: 'password',
       };
 
-      await createUserDocWithUid(uid, firestoreUserRecord as any);
+      await createRegistration(firestoreUserRecord as any);
 
       toast.success(
         `Account created. Welcome ${formData.childName}! 🎉`
@@ -107,23 +107,12 @@ export function RegistrationForm({
     } catch (err: any) {
       console.warn('Auth registration error', err);
 
-      if (err?.message)
-        toast.error(`Auth error: ${err.message}`);
-      else if (err?.code)
-        toast.error(`Auth error: ${err.code}`);
+      if (err?.message) toast.error(`Auth error: ${err.message}`);
+      else if (err?.code) toast.error(`Auth error: ${err.code}`);
 
-      // Fallback (non-auth, legacy support)
-      try {
-        await createRegistration(newRegistration as any);
-        toast.success(
-          `Saved to cloud (no auth). Welcome ${formData.childName}! 🎉`
-        );
-      } catch (e) {
-        console.warn('createRegistration fallback failed', e);
-        toast.error(
-          'Saved locally, but failed to save to cloud.'
-        );
-      }
+      toast.success(
+        `Saved locally. Welcome ${formData.childName}! 🎉 (Cloud sync unavailable)`
+      );
     } finally {
       setIsSubmitting(false);
     }

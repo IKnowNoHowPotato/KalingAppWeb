@@ -15,12 +15,13 @@ export interface RegistrationRecord {
 
 export async function createRegistration(record: RegistrationRecord) {
   try {
-    // If record has an ownerUid (created via Auth), use that as the doc id
-    if ((record as any).ownerUid) {
-      const uid = (record as any).ownerUid
-      const docRef = doc(db, 'users', uid)
-      await setDoc(docRef, record, { merge: true })
-      return true
+    // If record has an owner UID (created via Auth), use that as the doc id.
+    // Support both `ownerUid` (legacy) and `uid` fields.
+    const ownerUid = (record as any).ownerUid || (record as any).uid;
+    if (ownerUid) {
+      const docRef = doc(db, 'users', ownerUid);
+      await setDoc(docRef, record, { merge: true });
+      return true;
     }
 
     // Otherwise create a new document in users
@@ -47,17 +48,6 @@ export async function getRegistrationByNumericId(numericId: number) {
   }
 }
 
-export async function createUserDocWithUid(uid: string, record: RegistrationRecord) {
-  try {
-    const docRef = doc(db, 'users', uid)
-    await setDoc(docRef, record, { merge: true })
-    return true
-  } catch (err) {
-    console.error('createUserDocWithUid error', err)
-    throw err
-  }
-}
-
 export async function getUserByUid(uid: string) {
   try {
     const docRef = doc(db, 'users', uid)
@@ -73,7 +63,7 @@ export async function getUserByUid(uid: string) {
 export async function updateUserByNumericId(numericId: number, data: Record<string, any>) {
   try {
     const colRef = collection(db, 'users')
-    const q = query(colRef, where('id', '==', numericId))
+    const q = query(colRef, where('localId', '==', numericId))
     const snap = await getDocs(q)
     if (snap.empty) return null
     const docSnap = snap.docs[0]
