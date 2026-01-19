@@ -11,7 +11,7 @@ import {
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { updateUserByNumericId } from '../services/firestoreService';
+import { updateUserByUid } from '../services/firestoreService';
 
 interface StorySelectionProps {
   userUid: string; // ✅ Firebase UID
@@ -69,16 +69,33 @@ export function StorySelection({
   const [recommendation, setRecommendation] =
     useState<'pre-reader' | 'early-reader' | null>(null);
 
+  // Helper: robustly find a user index in localStorage by id/localId
+  function findLocalUserIndex(users: any[], uid: string) {
+    const numeric = Number(uid);
+    return users.findIndex((u: any) =>
+      u.id === uid ||
+      u.id === numeric ||
+      u.localId === uid ||
+      u.localId === numeric
+    );
+  }
+
   /**
-   * Load assessment from localStorage
+   * Load assessment from localStorage or use Firebase UID directly
    */
   useEffect(() => {
+    // First try to find in localStorage by any id/localId match
     const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const child = users.find((u: any) => u.id === userUid);
+    const idx = findLocalUserIndex(users, userUid);
+    const child = idx !== -1 ? users[idx] : null;
 
     if (child?.assessment) {
       setAssessmentData(child.assessment);
       setRecommendation(getRecommendedStory(child.assessment));
+    } else {
+      // If not in localStorage, assessment might be in Firestore
+      // For now, allow story selection even without loaded assessment
+      console.warn('Assessment data not found in localStorage for uid:', userUid);
     }
   }, [userUid]);
 
@@ -88,31 +105,31 @@ export function StorySelection({
   async function handleStartStory(
     storyId: 'pre-reader' | 'early-reader'
   ) {
-    if (!assessmentData) {
-      alert('Please complete the assessment before starting a story.');
-      return;
-    }
-
     const timestamp = new Date().toISOString();
 
-    // 1️⃣ Save locally
+    // 1️⃣ Save locally (if found in localStorage)
     const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const index = users.findIndex((u: any) => u.id === userUid);
+    const index = findLocalUserIndex(users, userUid);
 
     if (index !== -1) {
       users[index].storySelection = storyId;
       users[index].storyRecommended = recommendation;
       users[index].storySelectedAt = timestamp;
-      localStorage.setItem('users', JSON.stringify(users));
+      try {
+        localStorage.setItem('users', JSON.stringify(users));
+      } catch (err) {
+        console.warn('Failed to save story selection locally', err);
+      }
     }
 
-    // 2️⃣ Save to Firebase
+    // 2️⃣ Save to Firebase using Firebase UID
     try {
-      await updateUserByNumericId(Number(userUid), {
+      await updateUserByUid(userUid, {
         storySelection: storyId,
         storyRecommended: recommendation,
         storySelectedAt: timestamp,
       });
+      console.info('Story selection saved to Firebase');
     } catch (err) {
       console.warn(
         'Failed to save story selection to Firebase (offline mode)',
@@ -204,7 +221,18 @@ export function StorySelection({
           {stories.map((story) => (
             <Card
               key={story.id}
-              className={`relative overflow-hidden border-4 transition-all hover:scale-105 ${
+              role="button"
+              tabIndex={0}
+              onClick={() =>
+                handleStartStory(story.id as 'pre-reader' | 'early-reader')
+              }
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleStartStory(story.id as 'pre-reader' | 'early-reader');
+                }
+              }}
+              className={`relative overflow-hidden border-4 transition-all hover:scale-105 cursor-pointer ${
                 story.id === recommendation
                   ? 'border-yellow-400 shadow-2xl'
                   : 'border-purple-200 shadow-lg'
@@ -252,12 +280,12 @@ export function StorySelection({
                 </div>
 
                 <Button
-                  disabled={!assessmentData}
-                  onClick={() =>
+                  onClick={(e) => {
+                    e.stopPropagation();
                     handleStartStory(
                       story.id as 'pre-reader' | 'early-reader'
-                    )
-                  }
+                    );
+                  }}
                   className={`w-full bg-gradient-to-r ${story.gradient} text-white py-6 text-lg`}
                 >
                   Start This Story

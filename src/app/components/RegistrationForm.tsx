@@ -5,11 +5,11 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Card } from './ui/card';
 import { toast } from 'sonner';
-import { createRegistration, createUserDocWithUid } from '../services/firestoreService';
+import { createRegistration } from '../services/firestoreService';
 import { registerWithEmail } from '../../firebase';
 
 interface RegistrationFormProps {
-  onSuccess: (childName: string, registrationId: number) => void;
+  onSuccess: (childName: string, firebaseUid: string) => void;
   onSwitchToLogin: () => void;
 }
 
@@ -72,6 +72,7 @@ export function RegistrationForm({
       parentalConsent: formData.parentalConsent,
       localId,
       registeredAt: new Date().toISOString(),
+      // ℹ️ Password is NOT stored - managed by Firebase Authentication only
     };
 
     // Persist locally (non-auth reference only)
@@ -99,36 +100,30 @@ export function RegistrationForm({
         provider: 'password',
       };
 
-      await createUserDocWithUid(uid, firestoreUserRecord as any);
+      await createRegistration(firestoreUserRecord as any);
 
       toast.success(
         `Account created. Welcome ${formData.childName}! 🎉`
       );
+
+      // Pass Firebase UID instead of localId
+      onSuccess(formData.childName, uid);
+      return;
     } catch (err: any) {
       console.warn('Auth registration error', err);
 
-      if (err?.message)
-        toast.error(`Auth error: ${err.message}`);
-      else if (err?.code)
-        toast.error(`Auth error: ${err.code}`);
+      if (err?.message) toast.error(`Auth error: ${err.message}`);
+      else if (err?.code) toast.error(`Auth error: ${err.code}`);
 
-      // Fallback (non-auth, legacy support)
-      try {
-        await createRegistration(newRegistration as any);
-        toast.success(
-          `Saved to cloud (no auth). Welcome ${formData.childName}! 🎉`
-        );
-      } catch (e) {
-        console.warn('createRegistration fallback failed', e);
-        toast.error(
-          'Saved locally, but failed to save to cloud.'
-        );
-      }
+      toast.success(
+        `Saved locally. Welcome ${formData.childName}! 🎉 (Cloud sync unavailable)`
+      );
+      
+      // Fallback: pass localId if Firebase fails
+      onSuccess(formData.childName, localId.toString());
     } finally {
       setIsSubmitting(false);
     }
-
-    onSuccess(formData.childName, localId);
   };
 
   return (

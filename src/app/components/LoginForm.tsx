@@ -9,7 +9,7 @@ import { loginWithEmail } from '../../firebase';
 import { getUserByUid } from '../services/firestoreService';
 
 interface LoginFormProps {
-  onSuccess: (childName: string, registrationId: number) => void;
+  onSuccess: (childName: string, firebaseUid: string) => void;
   onSwitchToRegister: () => void;
 }
 
@@ -31,31 +31,24 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
 
     setIsSubmitting(true);
     try {
+      // 🔐 Authenticate with Firebase first
       const cred = await loginWithEmail(formData.email, formData.password)
       const uid = cred.user.uid
+      
+      // 📋 Fetch user data from Firestore using the UID
       const userDoc = await getUserByUid(uid) as any
-      if (userDoc && userDoc.childName && userDoc.id) {
+      if (userDoc && userDoc.childName) {
         toast.success(`Welcome back, ${userDoc.childName}! 🎉`)
         setIsSubmitting(false);
-        onSuccess(userDoc.childName, userDoc.id)
+        onSuccess(userDoc.childName, uid)
         return
       }
     } catch (err) {
       console.warn('Cloud login failed', err)
-    }
-
-    // Fallback to localStorage `users`
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const user = users.find((reg: any) => reg.email === formData.email && reg.password === formData.password);
-    if (!user) {
       toast.error('Invalid email or password!');
       setIsSubmitting(false);
       return;
     }
-
-    toast.success(`Welcome back, ${user.childName}! 🎉`);
-    onSuccess(user.childName, user.id);
-    setIsSubmitting(false);
   };
 
   return (

@@ -5,12 +5,12 @@ import { Card } from './ui/card';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { toast } from 'sonner';
-import { updateUserByNumericId } from '../services/firestoreService';
+import { updateUserByUid } from '../services/firestoreService';
 import { BookOpen, MessageCircle, Focus, Lightbulb, Smartphone, AlertCircle, Award, FileText } from 'lucide-react';
 
 interface AssessmentFormProps {
   childName: string;
-  registrationId: number;
+  firebaseUid: string;
   onComplete: () => void;
 }
 
@@ -57,7 +57,7 @@ interface AssessmentData {
   additionalNotes: string;
 }
 
-export function AssessmentForm({ childName, registrationId, onComplete }: AssessmentFormProps) {
+export function AssessmentForm({ childName, firebaseUid, onComplete }: AssessmentFormProps) {
   const [formData, setFormData] = useState<AssessmentData>({
     gradeLevel: '',
     priorAssessment: '',
@@ -94,29 +94,38 @@ export function AssessmentForm({ childName, registrationId, onComplete }: Assess
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
+    console.groupCollapsed(`AssessmentForm.handleSubmit — firebaseUid=${firebaseUid} child="${childName}"`);
+    console.debug('Start submit', { firebaseUid, childName, formDataSnapshot: formData });
+    const startTs = Date.now();
+
     // Basic validation
     if (!formData.gradeLevel || !formData.readingAbility) {
+      console.warn('Validation failed - missing required fields', {
+        gradeLevel: formData.gradeLevel,
+        readingAbility: formData.readingAbility,
+      });
       toast.error('Please complete all required sections!');
+      console.groupEnd();
       return;
     }
 
-    // Save assessment data locally under `users` and attempt cloud update
-    const registrations = JSON.parse(localStorage.getItem('users') || '[]');
-    const index = registrations.findIndex((r: any) => r.id === registrationId);
-    if (index !== -1) {
-      registrations[index].assessment = formData;
-      registrations[index].assessmentCompletedAt = new Date().toISOString();
-      localStorage.setItem('users', JSON.stringify(registrations));
-    }
-
+    // Save assessment to cloud using Firebase UID
     try {
-      await updateUserByNumericId(registrationId, { assessment: formData, assessmentCompletedAt: new Date().toISOString() })
+      console.debug('Attempting cloud update via updateUserByUid', { firebaseUid });
+      const res = await updateUserByUid(firebaseUid, {
+        assessment: formData,
+        assessmentCompletedAt: new Date().toISOString(),
+      });
+      console.info('Cloud update completed', { firebaseUid, result: res });
     } catch (err) {
-      console.warn('Failed to update assessment in cloud', err)
+      console.error('Failed to update assessment in cloud', err);
+      toast.error('Failed to save assessment to cloud');
     }
 
     toast.success(`Assessment completed for ${childName}! 🎯`);
+    console.debug('handleSubmit completed in', Date.now() - startTs, 'ms');
+    console.groupEnd();
     onComplete();
   };
 

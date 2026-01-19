@@ -17,7 +17,7 @@ export default function App() {
 
   const [childInfo, setChildInfo] = useState(() => {
     const savedChildInfo = localStorage.getItem('childInfo');
-    return savedChildInfo ? JSON.parse(savedChildInfo) : { name: '', id: 0 };
+    return savedChildInfo ? JSON.parse(savedChildInfo) : { name: '', uid: '' };
   });
 
   // Apply saved theme on mount
@@ -34,7 +34,7 @@ export default function App() {
         // User is not authenticated but app thinks they are - clear state
         localStorage.removeItem('currentView');
         localStorage.removeItem('childInfo');
-        setChildInfo({ name: '', id: 0 });
+        setChildInfo({ name: '', uid: '' });
         setCurrentView('login');
       }
     });
@@ -51,13 +51,13 @@ export default function App() {
     localStorage.setItem('childInfo', JSON.stringify(childInfo));
   }, [childInfo]);
 
-  const handleLoginSuccess = (childName: string, registrationId: number) => {
-    setChildInfo({ name: childName, id: registrationId });
+  const handleLoginSuccess = (childName: string, firebaseUid: string) => {
+    setChildInfo({ name: childName, uid: firebaseUid });
     setCurrentView('dashboard');
   };
 
-  const handleRegistrationSuccess = (childName: string, registrationId: number) => {
-    setChildInfo({ name: childName, id: registrationId });
+  const handleRegistrationSuccess = (childName: string, firebaseUid: string) => {
+    setChildInfo({ name: childName, uid: firebaseUid });
     setCurrentView('assessment');
   };
 
@@ -77,7 +77,7 @@ export default function App() {
     // Clear session data from localStorage on logout
     localStorage.removeItem('currentView');
     localStorage.removeItem('childInfo');
-    setChildInfo({ name: '', id: 0 });
+    setChildInfo({ name: '', uid: '' });
     setCurrentView('login');
   };
 
@@ -106,13 +106,13 @@ export default function App() {
       {currentView === 'assessment' && (
         <AssessmentForm 
           childName={childInfo.name}
-          registrationId={childInfo.id}
+          firebaseUid={childInfo.uid}
           onComplete={handleAssessmentComplete}
         />
       )}
       {currentView === 'storySelection' && (
         <StorySelection
-          userUid={childInfo.id}
+          userUid={childInfo.uid}
           childName={childInfo.name}
           onStorySelect={handleStorySelect}
           onBack={() => setCurrentView('dashboard')}
@@ -121,7 +121,7 @@ export default function App() {
 
       {currentView === 'dashboard' && (
         <ChildDashboard 
-          userUid={childInfo.id}
+          userUid={childInfo.uid}
           onLogout={handleLogout}
         />
       )}
