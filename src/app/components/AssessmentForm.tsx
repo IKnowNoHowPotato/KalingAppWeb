@@ -5,12 +5,12 @@ import { Card } from './ui/card';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { toast } from 'sonner';
-import { updateUserByNumericId } from '../services/firestoreService';
+import { updateUserByUid } from '../services/firestoreService';
 import { BookOpen, MessageCircle, Focus, Lightbulb, Smartphone, AlertCircle, Award, FileText } from 'lucide-react';
 
 interface AssessmentFormProps {
   childName: string;
-  registrationId: number;
+  firebaseUid: string;
   onComplete: () => void;
 }
 
@@ -57,7 +57,7 @@ interface AssessmentData {
   additionalNotes: string;
 }
 
-export function AssessmentForm({ childName, registrationId, onComplete }: AssessmentFormProps) {
+export function AssessmentForm({ childName, firebaseUid, onComplete }: AssessmentFormProps) {
   const [formData, setFormData] = useState<AssessmentData>({
     gradeLevel: '',
     priorAssessment: '',
@@ -95,8 +95,8 @@ export function AssessmentForm({ childName, registrationId, onComplete }: Assess
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    console.groupCollapsed(`AssessmentForm.handleSubmit — registrationId=${registrationId} child="${childName}"`);
-    console.debug('Start submit', { registrationId, childName, formDataSnapshot: formData });
+    console.groupCollapsed(`AssessmentForm.handleSubmit — firebaseUid=${firebaseUid} child="${childName}"`);
+    console.debug('Start submit', { firebaseUid, childName, formDataSnapshot: formData });
     const startTs = Date.now();
 
     // Basic validation
@@ -110,47 +110,17 @@ export function AssessmentForm({ childName, registrationId, onComplete }: Assess
       return;
     }
 
-    // Save assessment data locally under `users` and attempt cloud update
-    let registrations: any[] = [];
+    // Save assessment to cloud using Firebase UID
     try {
-      registrations = JSON.parse(localStorage.getItem('users') || '[]');
-      console.debug('Loaded registrations from localStorage', { count: registrations.length });
-    } catch (parseErr) {
-      console.error('Failed to parse users from localStorage', parseErr);
-      registrations = [];
-    }
-
-    // registrations created in RegistrationForm use `localId` (not `id`).
-    const index = registrations.findIndex(
-      (r: any) => r.localId === registrationId || r.id === registrationId
-    );
-    if (index !== -1) {
-      console.debug('Found registration entry locally at index', index, 'entry:', registrations[index]);
-      registrations[index].assessment = formData;
-      registrations[index].assessmentCompletedAt = new Date().toISOString();
-      try {
-        localStorage.setItem('users', JSON.stringify(registrations));
-        console.info('Saved assessment to localStorage for registration', {
-          index,
-          localId: registrations[index].localId,
-          id: registrations[index].id,
-        });
-      } catch (saveErr) {
-        console.error('Failed to save updated registrations to localStorage', saveErr);
-      }
-    } else {
-      console.warn('No local registration found for provided registrationId', registrationId);
-    }
-
-    try {
-      console.debug('Attempting cloud update via updateUserByNumericId', { registrationId });
-      const res = await updateUserByNumericId(registrationId, {
+      console.debug('Attempting cloud update via updateUserByUid', { firebaseUid });
+      const res = await updateUserByUid(firebaseUid, {
         assessment: formData,
         assessmentCompletedAt: new Date().toISOString(),
       });
-      console.info('Cloud update completed', { registrationId, result: res });
+      console.info('Cloud update completed', { firebaseUid, result: res });
     } catch (err) {
       console.error('Failed to update assessment in cloud', err);
+      toast.error('Failed to save assessment to cloud');
     }
 
     toast.success(`Assessment completed for ${childName}! 🎯`);

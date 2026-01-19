@@ -80,7 +80,8 @@ export function ChildDashboard({ userUid, onLogout }: ChildDashboardProps) {
     })();
   }, [userUid]);
 
-    // Generate mock activity data (this would come from actual app usage)
+  // Generate mock activity and achievement data on mount
+  useEffect(() => {
     const mockActivities = [
       { day: 'Mon', minutes: 15, completed: 3 },
       { day: 'Tue', minutes: 20, completed: 5 },
@@ -92,7 +93,6 @@ export function ChildDashboard({ userUid, onLogout }: ChildDashboardProps) {
     ];
     setActivityData(mockActivities);
 
-    // Generate achievements based on activity
     const mockAchievements = [
       { id: 1, title: 'First Steps', description: 'Completed first learning activity', icon: '🎯', unlocked: true },
       { id: 2, title: 'Quick Learner', description: 'Completed 5 activities in one day', icon: '⚡', unlocked: true },
@@ -101,6 +101,7 @@ export function ChildDashboard({ userUid, onLogout }: ChildDashboardProps) {
       { id: 5, title: 'Master Explorer', description: 'Completed all beginner levels', icon: '🌟', unlocked: false },
     ];
     setAchievements(mockAchievements);
+  }, []);
 
   const handleStatistics = () => {
     toast.info('Statistics view - already on this page!');

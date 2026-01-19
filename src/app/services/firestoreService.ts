@@ -6,11 +6,11 @@ export interface RegistrationRecord {
   parentName: string;
   email: string;
   age: string;
-  password?: string;
   parentalConsent?: boolean;
   registeredAt: string;
   assessment?: any;
   assessmentCompletedAt?: string;
+  // ℹ️ Password is NOT stored - managed by Firebase Authentication only
 }
 
 export async function createRegistration(record: RegistrationRecord) {
@@ -76,16 +76,13 @@ export async function updateUserByNumericId(numericId: number, data: Record<stri
   }
 }
 
-export async function getRegistrationByEmailAndPassword(email: string, password: string) {
+export async function updateUserByUid(uid: string, data: Record<string, any>) {
   try {
-    const colRef = collection(db, 'users')
-    const q = query(colRef, where('email', '==', email), where('password', '==', password))
-    const snap = await getDocs(q)
-    if (snap.empty) return null
-    const docSnap = snap.docs[0]
-    return { ...docSnap.data(), _docId: docSnap.id }
+    const docRef = doc(db, 'users', uid)
+    await updateDoc(docRef, data)
+    return true
   } catch (err) {
-    console.error('getRegistrationByEmailAndPassword error', err)
+    console.error('updateUserByUid error', err)
     throw err
   }
 }

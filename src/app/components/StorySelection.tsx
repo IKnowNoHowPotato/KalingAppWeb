@@ -11,7 +11,7 @@ import {
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { updateUserByNumericId } from '../services/firestoreService';
+import { updateUserByUid } from '../services/firestoreService';
 
 interface StorySelectionProps {
   userUid: string; // ✅ Firebase UID
@@ -81,9 +81,10 @@ export function StorySelection({
   }
 
   /**
-   * Load assessment from localStorage
+   * Load assessment from localStorage or use Firebase UID directly
    */
   useEffect(() => {
+    // First try to find in localStorage by any id/localId match
     const users = JSON.parse(localStorage.getItem('users') || '[]');
     const idx = findLocalUserIndex(users, userUid);
     const child = idx !== -1 ? users[idx] : null;
@@ -91,6 +92,10 @@ export function StorySelection({
     if (child?.assessment) {
       setAssessmentData(child.assessment);
       setRecommendation(getRecommendedStory(child.assessment));
+    } else {
+      // If not in localStorage, assessment might be in Firestore
+      // For now, allow story selection even without loaded assessment
+      console.warn('Assessment data not found in localStorage for uid:', userUid);
     }
   }, [userUid]);
 
@@ -100,14 +105,9 @@ export function StorySelection({
   async function handleStartStory(
     storyId: 'pre-reader' | 'early-reader'
   ) {
-    if (!assessmentData) {
-      alert('Please complete the assessment before starting a story.');
-      return;
-    }
-
     const timestamp = new Date().toISOString();
 
-    // 1️⃣ Save locally
+    // 1️⃣ Save locally (if found in localStorage)
     const users = JSON.parse(localStorage.getItem('users') || '[]');
     const index = findLocalUserIndex(users, userUid);
 
@@ -122,21 +122,14 @@ export function StorySelection({
       }
     }
 
-    // 2️⃣ Save to Firebase using a numeric id if available (from local entry)
+    // 2️⃣ Save to Firebase using Firebase UID
     try {
-      const localEntry = index !== -1 ? users[index] : null;
-      const numericId = localEntry?.id ?? localEntry?.localId ?? null;
-      const cloudId = Number(numericId ?? userUid);
-
-      if (!Number.isNaN(cloudId)) {
-        await updateUserByNumericId(cloudId, {
-          storySelection: storyId,
-          storyRecommended: recommendation,
-          storySelectedAt: timestamp,
-        });
-      } else {
-        console.warn('No numeric id available to save story selection to cloud; skipping cloud update.');
-      }
+      await updateUserByUid(userUid, {
+        storySelection: storyId,
+        storyRecommended: recommendation,
+        storySelectedAt: timestamp,
+      });
+      console.info('Story selection saved to Firebase');
     } catch (err) {
       console.warn(
         'Failed to save story selection to Firebase (offline mode)',
@@ -229,23 +222,21 @@ export function StorySelection({
             <Card
               key={story.id}
               role="button"
-              tabIndex={assessmentData ? 0 : -1}
+              tabIndex={0}
               onClick={() =>
-                assessmentData &&
                 handleStartStory(story.id as 'pre-reader' | 'early-reader')
               }
               onKeyDown={(e) => {
-                if (!assessmentData) return;
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
                   handleStartStory(story.id as 'pre-reader' | 'early-reader');
                 }
               }}
-              className={`relative overflow-hidden border-4 transition-all hover:scale-105 ${
+              className={`relative overflow-hidden border-4 transition-all hover:scale-105 cursor-pointer ${
                 story.id === recommendation
                   ? 'border-yellow-400 shadow-2xl'
                   : 'border-purple-200 shadow-lg'
-              } ${assessmentData ? 'cursor-pointer' : 'opacity-60 cursor-not-allowed'}`}
+              }`}
             >
               {/* ⭐ Recommended Tag */}
               {story.id === recommendation && (
@@ -289,7 +280,6 @@ export function StorySelection({
                 </div>
 
                 <Button
-                  disabled={!assessmentData}
                   onClick={(e) => {
                     e.stopPropagation();
                     handleStartStory(

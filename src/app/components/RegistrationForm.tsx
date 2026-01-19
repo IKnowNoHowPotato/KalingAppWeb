@@ -9,7 +9,7 @@ import { createRegistration } from '../services/firestoreService';
 import { registerWithEmail } from '../../firebase';
 
 interface RegistrationFormProps {
-  onSuccess: (childName: string, registrationId: number) => void;
+  onSuccess: (childName: string, firebaseUid: string) => void;
   onSwitchToLogin: () => void;
 }
 
@@ -72,6 +72,7 @@ export function RegistrationForm({
       parentalConsent: formData.parentalConsent,
       localId,
       registeredAt: new Date().toISOString(),
+      // ℹ️ Password is NOT stored - managed by Firebase Authentication only
     };
 
     // Persist locally (non-auth reference only)
@@ -104,6 +105,10 @@ export function RegistrationForm({
       toast.success(
         `Account created. Welcome ${formData.childName}! 🎉`
       );
+
+      // Pass Firebase UID instead of localId
+      onSuccess(formData.childName, uid);
+      return;
     } catch (err: any) {
       console.warn('Auth registration error', err);
 
@@ -113,11 +118,12 @@ export function RegistrationForm({
       toast.success(
         `Saved locally. Welcome ${formData.childName}! 🎉 (Cloud sync unavailable)`
       );
+      
+      // Fallback: pass localId if Firebase fails
+      onSuccess(formData.childName, localId.toString());
     } finally {
       setIsSubmitting(false);
     }
-
-    onSuccess(formData.childName, localId);
   };
 
   return (
